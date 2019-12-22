@@ -1,0 +1,2 @@
+# Fire-Detection
+The purpose of this project is to create an algorithm that can predict whether a fire is present in a room based on a picture of that room. The data was obtained from kaggle and can be obtained via this link: https://www.kaggle.com/atulyakumar98/test-dataset

@@ -34,42 +34,33 @@ dim(image_test[[1]]) #it is 3 by 1500 by 1087
 str(image_test[[1]])
 
 #There is too many pixel information to be analyzed so reducing pixel information
-resized_image <- image_resize(image_test, "20%x20%")
+resized_image <- image_resize(image_test, "10%x10%")
 dim(resized_image[[1]])
 numerical_resized <- as.numeric(resized_image[[1]])
 str(numerical_resized) #looks like it became a matrix and [height, width, channel]
 
 #Testing image read on a matrix of numeric
-image_read(numerical_resized) #seems like it is possible
+image_read(numerical_resized) #seems like it is possible to read image from numerical data
 
 #Testing what the three channels are
 #Testing channel 1
 testing_channels <- numerical_resized
-testing_channels[,,2] <- 0
-image_read(testing_channels)
-
-testing_channels[,,3] <- 0
+testing_channels[,,-1] <- 0
 image_read(testing_channels) #1 is Red
 
 #Testing channel 2
 testing_channels <- numerical_resized
-testing_channels[,,1] <- 0
-image_read(testing_channels)
-
-testing_channels[,,3] <- 0
+testing_channels[,,-2] <- 0
 image_read(testing_channels) #2 is Green
 
 #Testing channel 3
 testing_channels <- numerical_resized
-testing_channels[,,1] <- 0
-image_read(testing_channels)
-
-testing_channels[,,2] <- 0
+testing_channels[,,3] <- 0
 image_read(testing_channels) #3 is blue
 
 #Changing the 3 dimensional matrix to a long vector
 vector_resized <- as.vector(numerical_resized)
-
+length(vector_resized)
 
 
 
