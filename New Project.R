@@ -74,11 +74,23 @@ Imagefilepath_generator <- function(path, image_name){
   return(unlist(image_list))
 }
 
-#Also a function to randomize the 
+#Function to create index for generating train and test set
+Generate_Index <- function(length, seed = 200, sections = 10){
+  folds <- cut(1:length, breaks = sections)
+  set.seed(seed)
+  index <- sample(folds, length(folds), replace = FALSE)
+}
 
 
 ListPaths_NoFire <- Imagefilepath_generator(NoFire_filepath, NoFireList)
 ListPaths_Fire <- Imagefilepath_generator(Fire_filepath, FireList)
+
+#Randomizing the list and splitting them into train and test set
+NoFireImagesTest <- ListPaths_NoFire[Generate_Index(length(ListPaths_NoFire)) == 1]
+NoFireImagesTrain <- ListPaths_NoFire[Generate_Index(length(ListPaths_NoFire)) != 1]
+
+FireImagesTest <- ListPaths_Fire[Generate_Index(length(ListPaths_Fire))]
+
 
 
 
