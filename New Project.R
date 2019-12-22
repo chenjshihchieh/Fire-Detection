@@ -1,4 +1,4 @@
-#loading the necessary packages
+##loading the necessary packages
 
 necessary_packages <- c("keras", "tidyverse", "magick", "pixmap")
 for(i in necessary_packages){
@@ -8,6 +8,7 @@ for(i in necessary_packages){
   }
 }
 
+##Setting up the necessary file paths
 #Setting up the names for the files paths to the images
 NoFire_filepath <- "Fire_Images/0/"
 Fire_filepath <- "Fire_Images/1/"
@@ -16,7 +17,7 @@ Fire_filepath <- "Fire_Images/1/"
 NoFireList <- list.files(NoFire_filepath)
 FireList <- list.files(Fire_filepath)
 
-#Testing out reading images
+##Testing out reading images
 image_test <- image_read(paste0(NoFire_filepath, NoFireList[1]))
 
 #Looking at the structure of the read image
@@ -61,6 +62,31 @@ image_read(testing_channels) #3 is blue
 #Changing the 3 dimensional matrix to a long vector
 vector_resized <- as.vector(numerical_resized)
 length(vector_resized)
+
+##Creating the training and testing data
+#A function to simplify creating the filepaths for each image
+Imagefilepath_generator <- function(path, image_name){
+  image_list <- list()
+  for(i in image_name){
+    x <- paste0(path, i)
+    image_list <- append(image_list, x)
+  }
+  return(unlist(image_list))
+}
+
+#Also a function to randomize the 
+
+
+ListPaths_NoFire <- Imagefilepath_generator(NoFire_filepath, NoFireList)
+ListPaths_Fire <- Imagefilepath_generator(Fire_filepath, FireList)
+
+
+
+#Analyzing the image
+#Creating a function to transform the data into analyzable rows
+#Instead of analyzing every pixel as their own variable,
+#I am creating an average of a region of a photo
+ImageConverted <- function(ImageList)
 
 
 
