@@ -89,10 +89,11 @@ ListPaths_Fire <- Imagefilepath_generator(Fire_filepath, FireList)
 NoFireImagesTest <- ListPaths_NoFire[Generate_Index(length(ListPaths_NoFire)) == 1]
 NoFireImagesTrain <- ListPaths_NoFire[Generate_Index(length(ListPaths_NoFire)) != 1]
 
-FireImagesTest <- ListPaths_Fire[Generate_Index(length(ListPaths_Fire))]
+FireImagesTest <- ListPaths_Fire[Generate_Index(length(ListPaths_Fire)) == 1]
+FireImagesTrain <- ListPaths_Fire[Generate_Index(length(ListPaths_Fire)) != 1]
 
-
-
+test <- c(NoFireImagesTest, FireImagesTest)
+train <- c(NoFireImagesTrain, FireImagesTrain)
 
 #Analyzing the image
 #Creating a function to transform the data into analyzable rows
