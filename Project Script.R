@@ -122,30 +122,7 @@ information_of_image %>% mutate(ratio = width/height) %>%
 #Lets cap the resolution so that the longer side is at 640 and shorter size is adjusted to maintain the ratio of the original image
 
 ####Data Wrangling####
-#While resizing the image, might as well randomly sort them into testing and training sets
-length(c(filepaths_fire_list, filepaths_nofire_list))
-for(i in list(filepaths_fire_list, filepaths_nofire_list)){
-  folds <- cut(1:length(i), breaks = 10, labels = FALSE)
-  set.seed(1225)
-  index <- sample(folds, length(folds), replace = FALSE)
-  index[index == 1] <- "test"
-  index[index != 1] <- "train"
-  
-  for(j in input_images){
-    image <- image_read(j)
-    resize <- image_resize(image, geometry = "640x>")
-    resize <- image_resize(image, geometry = "x640>")
-    image_write(resize, )
-  }
-}
 
-
-
-
-
-##### Creating the data set####
-
-##Creating the training and testing data
 #A function to simplify creating the filepaths for each image
 Imagefilepath_generator <- function(path, image_name){
   image_list <- list()
@@ -156,35 +133,55 @@ Imagefilepath_generator <- function(path, image_name){
   return(unlist(image_list))
 }
 
+#Creating the paths to each image
+ListPaths_NoFire <- Imagefilepath_generator(nofire_filepath, nofire_list)
+ListPaths_Fire <- Imagefilepath_generator(fire_filepath, fire_list)
+
+
 #Function to create index for generating train and test set
-Generate_Index <- function(length, seed = 200, sections = 10){
-  folds <- cut(1:length, breaks = sections)
+Generate_Index <- function(listpath, seed = 200, sections = 10){
+  length <- length(listpath)
+  folds <- cut(1:length, breaks = sections, labels = FALSE)
   set.seed(seed)
   index <- sample(folds, length(folds), replace = FALSE)
   return(index)
 }
 
+#While resizing the image, might as well randomly sort them into testing and training sets
+ImageResizor <- function(listpath1, listpath2){
+  #Combinging the two lists
+  whole_list <- c(listpath1, listpath2)
+  
+  #Creating the indices for splitting images into training and testing sets
+  index <- c(Generate_Index(listpath1, seed = 1225), Generate_Index(listpath2), seed = 1226)
+  
+  index[index != 1] <- "train"
+  index[index == 1] <- "test"
+  
+  for(i in 1:length(index)){
+    image_read(whole_list[i]) %>%
+      image_resize("640>") %>%
+      image_resize("x640>") %>%
+      image_write(path = paste0("Fire_Images/Resized Images/", index[i],"/", i, ".jpeg"))
+    
+  }
+}
 
-ListPaths_NoFire <- Imagefilepath_generator(NoFire_filepath, NoFireList)
-ListPaths_Fire <- Imagefilepath_generator(Fire_filepath, FireList)
+ImageResizor(ListPaths_Fire, ListPaths_NoFire)
 
-#Randomizing the list and splitting them into train and test set
-NoFireImagesTest <- ListPaths_NoFire[Generate_Index(length(ListPaths_NoFire)) == 1]
-NoFireImagesTrain <- ListPaths_NoFire[Generate_Index(length(ListPaths_NoFire)) != 1]
+#Now that the images are divided into test and train packages,
+#We need to extract the necessary information from the images for data analysis.
 
-FireImagesTest <- ListPaths_Fire[Generate_Index(length(ListPaths_Fire)) == 1]
-FireImagesTrain <- ListPaths_Fire[Generate_Index(length(ListPaths_Fire)) != 1]
-
-rm(ListPaths_NoFire, ListPaths_Fire, Fire_filepath, FireList, NoFire_filepath, NoFireList, NoFire_filepath)
-
-
-#Analyzing the image
 #Creating a function to transform the data into analyzable rows
 #Instead of analyzing every pixel as their own variable,
-#I am creating an average of a region of a photo
-Image.to.Vector <- function(TrainImage, TestImage){
+#I am dividing the images by region and using the average value of those regions as predictor
+Image.to.Vector <- function(filepath){
+  
   
 }
+
+####Analyzing the image####
+
 
 
 
