@@ -180,13 +180,20 @@ regions <- seq(.1, 1, .05)
 
 
 Image.to.Vector <- function(filepath){
+  data <- data.frame()
   for(i in filepath){
     image <- image_read(filepath)
-    
+    summarized_pixel_data <- data.frame()
     for(y in seq(0, 0.9, 0.1)){
       
       for(x in seq(0, 0.9, 0.1)){
+        resized_numerical <- image[[1]] %>% image_resize(paste0("10%x10X+", x, "+", y)) %>% 
+          as.numeric(.)
         
+        average_of_pixel <- c(mean(resized_numerical[,,1], resized_numerical[,,2], resized_numerical[,,3]))
+        summarize_pixel_data <- rbind(summarize_pixel_data, average_of_pixel)
+          
+          
       }
       
     }
