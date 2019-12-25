@@ -158,7 +158,7 @@ ImageResizor <- function(listpath1, listpath2){
   index[index != 1] <- "train"
   index[index == 1] <- "test"
   
-  for(i in 1:length(index)){
+  for(i in seq(length(index))){
     image_read(whole_list[i]) %>%
       image_resize("640>") %>%
       image_resize("x640>") %>%
@@ -175,9 +175,24 @@ ImageResizor(ListPaths_Fire, ListPaths_NoFire)
 #Creating a function to transform the data into analyzable rows
 #Instead of analyzing every pixel as their own variable,
 #I am dividing the images by region and using the average value of those regions as predictor
+regions <- seq(.1, 1, .05)
+
+
+
 Image.to.Vector <- function(filepath){
-  
-  
+  for(i in filepath){
+    image <- image_read(filepath)
+    
+    for(y in seq(0, 0.9, 0.1)){
+      
+      for(x in seq(0, 0.9, 0.1)){
+        
+      }
+      
+    }
+    
+    
+  }
 }
 
 ####Analyzing the image####
