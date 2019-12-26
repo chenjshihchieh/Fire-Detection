@@ -159,10 +159,15 @@ ImageResizor <- function(listpath1, listpath2){
   index[index == 1] <- "test"
   
   for(i in seq(length(index))){
+    
     image_read(whole_list[i]) %>%
       image_resize("640>") %>%
       image_resize("x640>") %>%
-      image_write(path = paste0("Fire_Images/Resized Images/", index[i],"/", i, ".jpeg"))
+      image_write(path = paste0("Fire_Images/Resized Images/", index[i],"/", 
+                                if(str_detect(whole_list[i], "/1/")){"fire"}else{
+                                  "nofire"
+                                },
+                                i, str_extract(whole_list[i], "\\.\\w*")))
     
   }
 }
@@ -175,32 +180,46 @@ ImageResizor(ListPaths_Fire, ListPaths_NoFire)
 #Creating a function to transform the data into analyzable rows
 #Instead of analyzing every pixel as their own variable,
 #I am dividing the images by region and using the average value of those regions as predictor
-regions <- seq(.1, 1, .05)
-
-
-
 Image.to.Vector <- function(filepath){
   data <- data.frame()
   for(i in filepath){
     image <- image_read(filepath)
     summarized_pixel_data <- data.frame()
-    for(y in seq(0, 0.9, 0.1)){
-      
-      for(x in seq(0, 0.9, 0.1)){
-        resized_numerical <- image[[1]] %>% image_resize(paste0("10%x10X+", x, "+", y)) %>% 
-          as.numeric(.)
+    # The two for loops cycles through the different regions of an image
+    
+    for(y in seq(0, 90, 10)){
+      for(x in seq(0, 90, 10)){
+        resized_numerical <- image %>% image_crop(paste0("10%x10%+", x,"%", "+", y,"%")) %>%
+          .[[1]] %>% as.numeric(.)
         
-        average_of_pixel <- c(mean(resized_numerical[,,1], resized_numerical[,,2], resized_numerical[,,3]))
-        summarize_pixel_data <- rbind(summarize_pixel_data, average_of_pixel)
+        channel_average_by_column <- NULL
+        
+        for(channel in seq(3)){
+          channel_average_by_column <- cbind(channel_average_by_column, mean(resized_numerical[,,channel]))
           
-          
+        }
+        summarized_pixel_data <- rbind(summarized_pixel_data, channel_average_by_column)
+        
       }
-      
     }
-    
-    
+    summarized_pixel_data_rearranged <- c(summarized_pixel_data$V1, summarized_pixel_data$V2, summarized_pixel_data$V3, str_match(filepath, "/fire"))
+    data <- rbind(data, summarized_pixel_data_rearranged)
   }
+  return(data)
 }
+
+#Generating the filepaths for the images
+testimage_filepath <- "Fire_Images/Resized Images/test/"
+trainimage_filepath <- "Fire_Images/Resized Images/train/"
+
+testimage_filenames <- list.files(testimage_filepath)
+trainimage_filenames <- list.files(trainimage_filepath)
+
+testlist <- paste0(testimage_filepath, testimage_filenames)
+trainlist <- paste0(trainimage_filepath, trainimage_filenames)
+rm(testimage_filepath, trainimage_filepath, testimage_filenames, trainimage_filenames)
+
+train <- Image.to.Vector(trainlist)
 
 ####Analyzing the image####
 
