@@ -1,6 +1,6 @@
 ####loading the necessary packages####
 
-necessary_packages <- c("keras", "tidyverse", "magick", "pixmap")
+necessary_packages <- c("keras", "tidyverse", "magick", "pixmap", "randomForest")
 for(i in necessary_packages){
   if(!require(i, character.only = TRUE)) {
     install.packages(i)
@@ -202,7 +202,7 @@ Image.to.Vector <- function(filepath){
         
       }
     }
-    summarized_pixel_data_rearranged <- c(summarized_pixel_data$V1, summarized_pixel_data$V2, summarized_pixel_data$V3, str_match(filepath, "/fire"))
+    summarized_pixel_data_rearranged <- c(summarized_pixel_data$V1, summarized_pixel_data$V2, summarized_pixel_data$V3, class = str_match(filepath, "/fire"))
     data <- rbind(data, summarized_pixel_data_rearranged)
   }
   return(data)
@@ -220,9 +220,13 @@ trainlist <- paste0(trainimage_filepath, trainimage_filenames)
 rm(testimage_filepath, trainimage_filepath, testimage_filenames, trainimage_filenames)
 
 train <- Image.to.Vector(trainlist)
+test <- Image.to.Vector(testlist)
 
 ####Analyzing the image####
+rforest_fit <- randomForest(class~., data = train)
+confusionMatrix(predict(rforest_fit, test[,-301]), test$class)
 
-
+lm_fit <- lm(class~., data = train)
+confusionmatrix(predict(lm_fit, test[,-301]), test$class)
 
 
