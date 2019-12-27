@@ -1,6 +1,6 @@
 ####loading the necessary packages####
 
-necessary_packages <- c("keras", "tidyverse", "magick", "pixmap", "randomForest")
+necessary_packages <- c("tidyverse", "magick", "randomForest", "caret", "e1071", "rpart", "arm", "Rborist")
 for(i in necessary_packages){
   if(!require(i, character.only = TRUE)) {
     install.packages(i)
@@ -181,10 +181,12 @@ ImageResizor(ListPaths_Fire, ListPaths_NoFire)
 #Instead of analyzing every pixel as their own variable,
 #I am dividing the images by region and using the average value of those regions as predictor
 Image.to.Vector <- function(filepath){
+ system.time({
   data <- data.frame()
   for(i in filepath){
-    image <- image_read(filepath)
+    image <- image_read(i)
     summarized_pixel_data <- data.frame()
+    
     # The two for loops cycles through the different regions of an image
     
     for(y in seq(0, 90, 10)){
@@ -202,11 +204,13 @@ Image.to.Vector <- function(filepath){
         
       }
     }
-    summarized_pixel_data_rearranged <- c(summarized_pixel_data$V1, summarized_pixel_data$V2, summarized_pixel_data$V3, class = str_detect(filepath, "/fire"))
+    summarized_pixel_data_rearranged <- c(summarized_pixel_data$V1, summarized_pixel_data$V2, summarized_pixel_data$V3, str_detect(i, "/fire"))
     data <- rbind(data, summarized_pixel_data_rearranged)
-    names(data) <- c(paste0(rep(c("R", "G", "B"), each = 100), 1:100), "Class")
+    print(paste0("completed:", i))
   }
+  names(data) <- c(paste0(rep(c("R", "G", "B"), each = 100), 1:100), "class")
   return(data)
+ })
 }
 
 #Generating the filepaths for the images
@@ -223,11 +227,56 @@ rm(testimage_filepath, trainimage_filepath, testimage_filenames, trainimage_file
 train <- Image.to.Vector(trainlist)
 test <- Image.to.Vector(testlist)
 
+train.factored <-cbind(train[,-301], class = factor(train[,301]))
+test.factored <- cbind(test[,-301], class = factor(test[,301]))
+
 ####Analyzing the image####
-rforest_fit <- randomForest(class~., data = train)
-confusionMatrix(predict(rforest_fit, test[,-301]), test$class)
-
-lm_fit <- lm(class~., data = train)
-confusionmatrix(predict(lm_fit, test[,-301]), test$class)
+summary(train.factored)
+plot(train.factored[,-301])
 
 
+#Using random forest
+rforest_fit <- randomForest(class~., data = train.factored)
+plot(rforest_fit)
+rforest_fit1 <- randomForest(class~., data = train.factored, cutoff = c(0.6, 0.4))
+plot(rforest_fit1)
+rforest_fit2 <- randomForest(class~., data = train.factored, cutoff = c(0.7, 0.3))
+plot(rforest_fit2)
+rforest_fit3 <- randomForest(class~., data = train.factored, cutoff = c(0.8, 0.2))
+plot(rforest_fit3)
+rforest_fit4 <- randomForest(class~., data = train.factored, cutoff = c(0.9, 0.1))
+plot(rforest_fit4)
+
+
+
+confusionMatrix(predict(rforest_fit, test.factored[,-301]), test.factored$class)
+
+
+
+#using rpart to fit a tree
+train_rpart <- train(class~.,
+                     method = "rpart",
+                     tuneGrid = data.frame(cp = seq(0.0, 0.1, len = 25)),
+                     data = train.factored)
+plot(train_rpart)
+confusionMatrix(predict(train_rpart, test.factored[,-301]), test.factored[,301])
+
+#CART package for randomforest
+fitcontrol <- trainControl(#10 -fold CV
+  method = "repeatedcv",
+  number = 10,
+  #cv repeated 5 times
+  repeats = 5,
+  savePredictions = TRUE
+  )
+
+rboristgrid <- data.frame(minNode = seq(25, 150, 25), predFixed = 1)
+
+set.seed(2002)
+fit <- train(class~., method = "Rborist", 
+             data = train.factored, 
+             trControl = fitcontrol,
+             tun
+             classWeight = c(5, 1)
+             
+             )
