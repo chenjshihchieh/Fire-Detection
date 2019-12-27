@@ -202,8 +202,9 @@ Image.to.Vector <- function(filepath){
         
       }
     }
-    summarized_pixel_data_rearranged <- c(summarized_pixel_data$V1, summarized_pixel_data$V2, summarized_pixel_data$V3, class = str_match(filepath, "/fire"))
+    summarized_pixel_data_rearranged <- c(summarized_pixel_data$V1, summarized_pixel_data$V2, summarized_pixel_data$V3, class = str_detect(filepath, "/fire"))
     data <- rbind(data, summarized_pixel_data_rearranged)
+    names(data) <- c(paste0(rep(c("R", "G", "B"), each = 100), 1:100), "Class")
   }
   return(data)
 }
