@@ -1,6 +1,6 @@
 ####loading the necessary packages####
 
-necessary_packages <- c("tidyverse", "magick", "randomForest", "caret", "e1071", "rpart", "arm", "Rborist")
+necessary_packages <- c("tidyverse", "magick", "randomForest", "caret")
 for(i in necessary_packages){
   if(!require(i, character.only = TRUE)) {
     install.packages(i)
@@ -11,8 +11,8 @@ rm(necessary_packages)
 
 ##Setting up the necessary file paths
 #Setting up the names for the files paths to the images
-nofire_filepath <- "Fire_Images/0/"
-fire_filepath <- "Fire_Images/1/"
+nofire_filepath <- "Fire-Detection/0/"
+fire_filepath <- "Fire-Detection/1/"
 
 #Getting the list of images in each filepath
 nofire_list <- list.files(nofire_filepath)
@@ -71,6 +71,8 @@ length(vector_resized)
 x <- image_info(image_test) #Pulls information of the image
 rbind(x, image_info(image_test)) #You can bind the information to a data frame and turn them into rows
 
+
+####Overview of the data####
 ##Creating a list of information of the image (Format, Width, Height, Colorspace, Matte, Filesize, and Density)
 #A function to simplify creating the filepaths for each image
 ImageFilepathGenerator <- function(path, image_name){
@@ -115,7 +117,7 @@ hist(information_of_image$height)
 information_of_image %>% ggplot(aes(width, height)) +
   geom_point() #looks like the images are generally wider than they are tall but the dimensions of the image arent all that uniform
 information_of_image %>% mutate(ratio = width/height) %>% 
-  ggplot(aes(ratio)) + geom_histogram(bins = 20) #From the graph, it looks like there are a few images with more extreme ratios
+  ggplot(aes(ratio)) + geom_histogram(bins = 20) #From the graph, it looks like there are a few images with different ratios
 
 
 #There are a lot of data sets that have extremely high resolution. 
@@ -160,10 +162,13 @@ ImageResizor <- function(listpath1, listpath2){
   
   for(i in seq(length(index))){
     
+    #resizing the image
     image_read(whole_list[i]) %>%
       image_resize("640>") %>%
       image_resize("x640>") %>%
-      image_write(path = paste0("Fire_Images/Resized Images/", index[i],"/", 
+      
+      #writing them into train or test folder
+      image_write(path = paste0("Fire-Detection/Resized Images/", index[i],"/", 
                                 if(str_detect(whole_list[i], "/1/")){"fire"}else{
                                   "nofire"
                                 },
@@ -181,41 +186,41 @@ ImageResizor(ListPaths_Fire, ListPaths_NoFire)
 #Instead of analyzing every pixel as their own variable,
 #I am dividing the images by region and using the average value of those regions as predictor
 Image.to.Vector <- function(filepath){
- system.time({
-  data <- data.frame()
-  for(i in filepath){
-    image <- image_read(i)
-    summarized_pixel_data <- data.frame()
-    
-    # The two for loops cycles through the different regions of an image
-    
-    for(y in seq(0, 90, 10)){
-      for(x in seq(0, 90, 10)){
-        resized_numerical <- image %>% image_crop(paste0("10%x10%+", x,"%", "+", y,"%")) %>%
-          .[[1]] %>% as.numeric(.)
-        
-        channel_average_by_column <- NULL
-        
-        for(channel in seq(3)){
-          channel_average_by_column <- cbind(channel_average_by_column, mean(resized_numerical[,,channel]))
+  system.time({ #system time for testing to see how long the function takes
+    data <- data.frame()
+    for(i in filepath){
+      image <- image_read(i)
+      summarized_pixel_data <- data.frame()
+      
+      # The two for loops cycles through the different regions of an image
+      
+      for(y in seq(0, 90, 10)){
+        for(x in seq(0, 90, 10)){
+          resized_numerical <- image %>% image_crop(paste0("10%x10%+", x,"%", "+", y,"%")) %>%
+            .[[1]] %>% as.numeric(.)
+          
+          channel_average_by_column <- NULL
+          
+          for(channel in seq(3)){
+            channel_average_by_column <- cbind(channel_average_by_column, mean(resized_numerical[,,channel]))
+            
+          }
+          summarized_pixel_data <- rbind(summarized_pixel_data, channel_average_by_column)
           
         }
-        summarized_pixel_data <- rbind(summarized_pixel_data, channel_average_by_column)
-        
       }
+      summarized_pixel_data_rearranged <- c(summarized_pixel_data$V1, summarized_pixel_data$V2, summarized_pixel_data$V3, str_detect(i, "/fire"))
+      data <- rbind(data, summarized_pixel_data_rearranged)
+      print(paste0("completed:", i))
     }
-    summarized_pixel_data_rearranged <- c(summarized_pixel_data$V1, summarized_pixel_data$V2, summarized_pixel_data$V3, str_detect(i, "/fire"))
-    data <- rbind(data, summarized_pixel_data_rearranged)
-    print(paste0("completed:", i))
-  }
-  names(data) <- c(paste0(rep(c("R", "G", "B"), each = 100), 1:100), "class")
-  return(data)
- })
+    names(data) <- c(paste0(rep(c("R", "G", "B"), each = 100), 1:100), "class")
+    return(data)
+  })
 }
 
 #Generating the filepaths for the images
-testimage_filepath <- "Fire_Images/Resized Images/test/"
-trainimage_filepath <- "Fire_Images/Resized Images/train/"
+testimage_filepath <- "Fire-Detection/Resized Images/test/"
+trainimage_filepath <- "Fire-Detection/Resized Images/train/"
 
 testimage_filenames <- list.files(testimage_filepath)
 trainimage_filenames <- list.files(trainimage_filepath)
@@ -224,72 +229,48 @@ testlist <- paste0(testimage_filepath, testimage_filenames)
 trainlist <- paste0(trainimage_filepath, trainimage_filenames)
 rm(testimage_filepath, trainimage_filepath, testimage_filenames, trainimage_filenames)
 
+#Using the previously created function to extract the data and combining them into a dataframe
 train <- Image.to.Vector(trainlist)
 test <- Image.to.Vector(testlist)
 
+#Factoring the class (fire or no fire) so the data can be fed into randomForest()
 train.factored <-cbind(train[,-301], class = factor(train[,301]))
 test.factored <- cbind(test[,-301], class = factor(test[,301]))
+
+#Saving the data
 write.csv(train.factored, "train.csv", row.names = FALSE)
 write.csv(test.factored, "test.csv", row.names = FALSE)
+
+
 ####Analyzing the image####
 summary(train.factored)
 plot(train.factored[,-301])
 
 
-#Using random forest
+##Using random forest
+#Testing out different cutoff values
 rforest_fit <- randomForest(class~., data = train.factored)
-plot(rforest_fit)
+plot(rforest_fit, col = c("black", "red", "blue"))
 rforest_fit1 <- randomForest(class~., data = train.factored, cutoff = c(0.6, 0.4))
-plot(rforest_fit1)
+plot(rforest_fit1, col = c("black", "red", "blue"))
 rforest_fit2 <- randomForest(class~., data = train.factored, cutoff = c(0.65, 0.35))
-plot(rforest_fit2)
+plot(rforest_fit2, col = c("black", "red", "blue"))
 rforest_fit3 <- randomForest(class~., data = train.factored, cutoff = c(0.7, 0.3))
-plot(rforest_fit3)
+plot(rforest_fit3, col = c("black", "red", "blue"))
 rforest_fit4 <- randomForest(class~., data = train.factored, cutoff = c(0.75, 0.25))
-plot(rforest_fit4)
+plot(rforest_fit4, col = c("black", "red", "blue"))
 
+#Testing out different cutoff values with classwt applied
 rforest_fitwt1 <- randomForest(class~., data = train.factored, classwt = c(1, 99/585))
-plot(rforest_fitwt1)
+plot(rforest_fitwt1, col = c("black", "red", "blue"))
 rforest_fitwt2 <- randomForest(class~., data = train.factored, classwt = c(1, 99/585), cutoff = c(0.6, 0.4))
-plot(rforest_fitwt2)
+plot(rforest_fitwt2, col = c("black", "red", "blue"))
 rforest_fitwt3 <- randomForest(class~., data = train.factored, classwt = c(1, 99/585), cutoff = c(0.65, 0.35))
-plot(rforest_fitwt3)
+plot(rforest_fitwt3, col = c("black", "red", "blue"))
 rforest_fitwt4 <- randomForest(class~., data = train.factored, classwt = c(1, 99/585), cutoff = c(0.7, 0.3))
 plot(rforest_fitwt4, col = c("black", "red", "blue"))
 rforest_fitwt5 <- randomForest(class~., data = train.factored, classwt = c(1, 99/585), cutoff = c(0.75, 0.25))
-plot(rforest_fitwt5)
+plot(rforest_fitwt5, col = c("black", "red", "blue"))
 
-
-
-
+#Using the created model on the test set
 confusionMatrix(predict(rforest_fit1, test.factored[,-301]), test.factored$class, positive = '1')
-
-
-
-#using rpart to fit a tree
-train_rpart <- train(class~.,
-                     method = "rpart",
-                     tuneGrid = data.frame(cp = seq(0.0, 0.1, len = 25)),
-                     data = train.factored)
-plot(train_rpart)
-confusionMatrix(predict(train_rpart, test.factored[,-301]), test.factored[,301])
-
-#CART package for randomforest
-fitcontrol <- trainControl(#10 -fold CV
-  method = "repeatedcv",
-  number = 10,
-  #cv repeated 5 times
-  repeats = 5,
-  savePredictions = TRUE
-  )
-
-rboristgrid <- data.frame(minNode = seq(25, 150, 25), predFixed = 1)
-
-set.seed(2002)
-fit <- train(class~., method = "Rborist", 
-             data = train.factored, 
-             trControl = fitcontrol,
-             tuneGrid = rboristgrid,
-             classWeight = c(5, 1)
-             
-             )
