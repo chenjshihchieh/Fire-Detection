@@ -14,7 +14,7 @@ rm(necessary_packages)
 nofire_filepath <- "Fire_Images/0/"
 fire_filepath <- "Fire_Images/1/"
 
-#Getting the list of 
+#Getting the list of images in each filepath
 nofire_list <- list.files(nofire_filepath)
 fire_list <- list.files(fire_filepath)
 
@@ -230,6 +230,7 @@ test <- Image.to.Vector(testlist)
 train.factored <-cbind(train[,-301], class = factor(train[,301]))
 test.factored <- cbind(test[,-301], class = factor(test[,301]))
 
+
 ####Analyzing the image####
 summary(train.factored)
 plot(train.factored[,-301])
@@ -242,14 +243,12 @@ rforest_fit1 <- randomForest(class~., data = train.factored, cutoff = c(0.6, 0.4
 plot(rforest_fit1)
 rforest_fit2 <- randomForest(class~., data = train.factored, cutoff = c(0.7, 0.3))
 plot(rforest_fit2)
-rforest_fit3 <- randomForest(class~., data = train.factored, cutoff = c(0.8, 0.2))
+rforest_fit3 <- randomForest(class~., data = train.factored, cutoff = c(0.75, 0.25))
 plot(rforest_fit3)
-rforest_fit4 <- randomForest(class~., data = train.factored, cutoff = c(0.9, 0.1))
-plot(rforest_fit4)
 
 
 
-confusionMatrix(predict(rforest_fit, test.factored[,-301]), test.factored$class)
+confusionMatrix(predict(rforest_fit2, test.factored[,-301]), test.factored$class)
 
 
 
@@ -276,7 +275,7 @@ set.seed(2002)
 fit <- train(class~., method = "Rborist", 
              data = train.factored, 
              trControl = fitcontrol,
-             tun
+             tuneGrid = rboristgrid,
              classWeight = c(5, 1)
              
              )

@@ -1,0 +1,89 @@
+---
+title: "Fire Detection Image Processing"
+author: "Chen, Shih-Chieh (Jack)"
+date: "December 27, 2019"
+output: pdf_document
+---
+
+```{r loading packages, include=FALSE}
+necessary_packages <- c("tidyverse", "magick", "randomForest", "caret", "e1071", "rpart", "arm", "Rborist")
+for(i in necessary_packages){
+  if(!require(i, character.only = TRUE)) {
+    install.packages(i)
+    require(i, character.only = TRUE)
+  }
+}
+rm(necessary_packages)
+```
+```{r setting up file paths, include = FALSE}
+nofire_filepath <- "Fire_Images/0/"
+fire_filepath <- "Fire_Images/1/"
+
+nofire_list <- list.files(nofire_filepath)
+fire_list <- list.files(fire_filepath)
+image <- image_read(paste0(nofire_filepath, nofire_list[1]))
+
+#Setting up the necessary functions
+ImageFilepathGenerator <- function(path, image_name){
+  image_list <- list()
+  for(i in image_name){
+    x <- paste0(path, i)
+    image_list <- append(image_list, x)
+  }
+  return(unlist(image_list))
+}
+
+PathToInfo <- function(filepath){
+  x <- image_info(image_read(filepath[1]))
+  for(i in filepath[-1]){
+    x <- rbind(x, image_info(image_read(i)))
+  }
+  return(x)
+}
+
+
+
+filepaths_nofire_list <- ImageFilepathGenerator(nofire_filepath, nofire_list)
+filepaths_fire_list <- ImageFilepathGenerator(fire_filepath, fire_list)
+```
+
+## Introduction
+# Overview
+This project looked at various images. Some of which contains fires while others do not. The purpose of this project is to create a model to classify them into images with fire and images without. A few key steps were done to create this model. The images were stored as jpeg or png images. They were stored in two folders with one folder storing images with fire and another folder storing images without fire. Thus, the pixel information had to be extracted and then randomly split into training and testing sets. Afterwards, a random forest model was created based on the randomForest package. 
+
+# Data Characteristics
+Looking at the files, we have 651 different images. We can take a look at the structure of the image with str() and some addition information with image_info
+```{r dimension of an image}
+str(image)
+image_info(image)
+```
+We can see that the images are of class magick-image. We see that the image has a width of 1500 pixels, height of 1087 pixels and colourspace of sRGB. The colour space tells us that the image is composed of the colours red, green, and blue. We can more clearly see this when we convert the image to a matrix.
+```{r Numeric Image}
+numeric_image <- as.numeric(image[[1]])
+dim(numeric_image)
+```
+The dimensions x and y gives us the height and width. Dimension z gives us the number of colour channels, red, green, and blue for a total of 3. In other words, there are 3 1087x1500 matrices. Each matrix represents a colour space with the values in each matrix representing the brightness of the respective colour. The final image is the combination of the 3 matrices.
+
+
+## Analysis
+
+# Data Wrangling
+Looking at the data, we see that the sizes of the images are quite different.
+```{r image size, include = FALSE}
+
+information_of_image <- PathToInfo(filepaths_nofire_list)
+
+
+information_of_image <- rbind(information_of_image, PathToInfo(filepaths_fire_list))
+
+summary(information_of_image)
+```
+
+If we plot the height and width, we can see that the ratio of the images are also quite different.
+```{r image ratio, include = FALSE}
+plot(information_of_image$height, information_of_image$width)
+```
+To address these differences, instead of the value of every individual pixel, the image is divided into 100 equal regions. For each region, the average pixel value will be extracted for each colour space (red, blue, and green). This means that there will be 3 (colour space) X 100 (regions) of predictors. The larger sized images have also been scaled down, due to concerns regarding memory size and computation time. If the longest side of an image was over 640 pixels, the image was scaled down so the longest side was 640 pixels. The width to height ratio of the image was kept. 
+
+
+
